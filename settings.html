@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Certificate Manager</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <i class="fa-solid fa-graduation-cap"></i>
+      <h1>CertiManager</h1>
+    </div>
+    <ul class="sidebar-menu">
+      <li class="sidebar-menu-item">
+        <a href="index.html">
+          <i class="fa-solid fa-cubes"></i>
+          <span>Certificates</span>
+        </a>
+      </li>
+      <li class="sidebar-menu-item">
+        <a href="index.html?filter=favorites">
+          <i class="fa-solid fa-star"></i>
+          <span>Favourites</span>
+        </a>
+      </li>
+      <li class="sidebar-menu-item active">
+        <a href="settings.html">
+          <i class="fa-solid fa-gear"></i>
+          <span>Settings</span>
+        </a>
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <li class="sidebar-menu-item" style="list-style: none;">
+        <a href="#" id="logout-btn">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span>Logout</span>
+        </a>
+      </li>
+    </div>
+  </aside>
+
+  <!-- Top Navigation Bar -->
+  <header class="header">
+
+    <!-- Page Title / Empty Area -->
+    <div class="header-title">
+      <h3 style="font-size: 16px; font-weight: 600;">System Settings</h3>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <a href="index.html?action=add-certificate" class="header-btn header-btn-primary" title="Add New Certificate">
+        <i class="fa-solid fa-plus"></i>
+      </a>
+      <div class="profile-trigger" onclick="window.location.href='index.html?action=profile'" title="View Profile">
+        <img src="images/profile.png" alt="User Avatar">
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="layout-wrapper fade-in-section">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <p class="subtitle-text">Configure application behavior, appearances, and preferences.</p>
+    </div>
+
+    <!-- Settings Card Panels -->
+    <div class="settings-container">
+      <div class="card settings-card">
+        <div class="setting-item">
+          <div class="setting-item-info">
+            <h4 class="setting-title"><i class="fa-solid fa-circle-half-stroke"></i> Theme Mode</h4>
+            <p class="setting-description">Select how CertiManager is presented on your screen. Toggle between clean light mode or comfortable dark mode for low-light environments.</p>
+          </div>
+          
+          <div class="theme-buttons-group">
+            <button type="button" class="btn" id="theme-light-btn">
+              <i class="fa-solid fa-sun"></i> <span>Light Mode</span>
+            </button>
+            <button type="button" class="btn" id="theme-dark-btn">
+              <i class="fa-solid fa-moon"></i> <span>Dark Mode</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Extra Information/Credits Card for professional layout look -->
+      <div class="card settings-card" style="margin-top: 24px;">
+        <div class="about-section">
+          <h4 class="setting-title"><i class="fa-solid fa-circle-info"></i> About CertiManager</h4>
+          <p class="setting-description" style="margin-bottom: 12px;">Version 1.0.0 (Vanilla JS Build). Created to help developers, designers, and students manage all certification credentials in one unified desktop dashboard.</p>
+          <div class="license-info">
+            <span><i class="fa-regular fa-copyright"></i> 2026 CertiManager Project. All rights reserved.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Theme & Settings Scripts -->
+  <script src="js/theme.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html>
