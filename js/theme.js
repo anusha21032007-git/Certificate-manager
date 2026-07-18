@@ -76,7 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Bind confirm button inside modal
     const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
     if (confirmLogoutBtn) {
-      confirmLogoutBtn.addEventListener('click', () => {
+      confirmLogoutBtn.addEventListener('click', async () => {
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          console.error("SignOut error:", err);
+        }
         localStorage.removeItem('token');
         sessionStorage.removeItem('token');
         if (typeof closeModal === 'function') {

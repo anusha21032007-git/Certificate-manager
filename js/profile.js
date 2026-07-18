@@ -1,5 +1,4 @@
-// Profile Page Interaction and Validation Logic
-const AUTH_API = 'http://localhost:5000/api/auth';
+// Profile Page Interaction and Validation Logic using Supabase
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('profile-details-form');
@@ -21,43 +20,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Load Profile Data ---
   async function fetchProfile() {
-    const token = getAuthToken();
-    if (!token) return;
-
     try {
-      const response = await fetch(`${AUTH_API}/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-        
-        // Populate inputs
-        document.getElementById('profile-username').value = user.username;
-        document.getElementById('profile-fullname-input').value = user.full_name;
-        document.getElementById('profile-email').value = user.email;
-        document.getElementById('profile-bio').value = user.bio || '';
-        
-        // Populate displays
-        if (displayName) displayName.textContent = user.full_name;
-        if (displayUsername) displayUsername.textContent = `@${user.username}`;
-        
-        // Populate profile pictures
-        if (user.profile_image) {
-          const avatarUrl = `http://localhost:5000/uploads/${user.profile_image}`;
-          document.querySelectorAll('img').forEach(img => {
-            if (img.src.includes('images/profile.png') || img.id === 'profile-avatar-img') {
-              img.src = avatarUrl;
-            }
-          });
-        }
-
-        saveInitialValues();
-      } else {
-        console.error('Failed to load profile');
+      const { data: { user }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !user) {
+        console.error("No active user session:", authErr);
+        return;
       }
+
+      const { data: profile, error: dbErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (dbErr) {
+        console.error('Failed to load profile from database:', dbErr);
+        return;
+      }
+
+      // Populate inputs
+      document.getElementById('profile-username').value = profile.username;
+      document.getElementById('profile-fullname-input').value = profile.full_name;
+      document.getElementById('profile-email').value = user.email; // email is on auth.users
+      document.getElementById('profile-bio').value = profile.bio || '';
+      
+      // Populate displays
+      if (displayName) displayName.textContent = profile.full_name;
+      if (displayUsername) displayUsername.textContent = `@${profile.username}`;
+      
+      // Populate profile pictures
+      if (profile.profile_image) {
+        let avatarUrl = profile.profile_image;
+        if (!avatarUrl.startsWith('http')) {
+          const { data } = supabase.storage.from('certificates').getPublicUrl(profile.profile_image);
+          avatarUrl = data.publicUrl;
+        }
+        document.querySelectorAll('img').forEach(img => {
+          if (img.src.includes('images/profile.png') || img.id === 'profile-avatar-img') {
+            img.src = avatarUrl;
+          }
+        });
+        localStorage.setItem('profile_avatar', avatarUrl);
+      }
+
+      saveInitialValues();
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -125,10 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const isPasswordAttempted = currentPass !== '' || newPass !== '' || confirmPass !== '';
 
       if (isPasswordAttempted) {
-        if (currentPass === '') {
-          alert('Please enter your current password to set a new password.');
-          return;
-        }
         if (newPass === '' || confirmPass === '') {
           alert('Please fill in both New Password and Confirm Password fields.');
           return;
@@ -139,34 +141,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      const token = getAuthToken();
-      const payload = {
-        username: usernameVal,
-        full_name: fullnameVal,
-        email: emailVal,
-        bio: bioVal
-      };
-
-      if (isPasswordAttempted) {
-        payload.currentPassword = currentPass;
-        payload.newPassword = newPass;
-      }
-
       try {
-        const response = await fetch(`${AUTH_API}/profile`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-        const data = await response.json();
+        // 1. Password change verification
+        if (isPasswordAttempted) {
+          const { error: pwdErr } = await supabase.auth.updateUser({ password: newPass });
+          if (pwdErr) {
+            alert(pwdErr.message || 'Failed to update password');
+            showToast(pwdErr.message || 'Password update failed', 'error');
+            return;
+          }
+        }
 
-        if (!response.ok) {
-          alert(data.message || 'Failed to update profile');
-          showToast(data.message || 'Profile update failed', 'error');
+        // 2. Email change verification
+        if (emailVal !== initialValues.email) {
+          const { error: emailErr } = await supabase.auth.updateUser({ email: emailVal });
+          if (emailErr) {
+            alert(emailErr.message || 'Failed to update email');
+            showToast(emailErr.message || 'Email update failed', 'error');
+            return;
+          }
+        }
+
+        // 3. Profiles table details update
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .update({
+            username: usernameVal,
+            full_name: fullnameVal,
+            bio: bioVal
+          })
+          .eq('id', user.id);
+
+        if (profileErr) {
+          alert(profileErr.message || 'Failed to update profile');
+          showToast(profileErr.message || 'Profile update failed', 'error');
           return;
         }
 
@@ -234,27 +245,39 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        const formData = new FormData();
-        formData.append('profile_image', file);
-
-        const token = getAuthToken();
         try {
-          const response = await fetch(`${AUTH_API}/profile`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
-            body: formData
-          });
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
 
-          const data = await response.json();
+          const fileExt = file.name.split('.').pop();
+          const fileName = `profiles/${user.id}/${Date.now()}.${fileExt}`;
 
-          if (!response.ok) {
-            showToast(data.message || 'Failed to upload profile picture', 'error');
+          // Upload file to Supabase storage
+          const { error: uploadErr } = await supabase.storage
+            .from('certificates')
+            .upload(fileName, file, {
+              upsert: true
+            });
+
+          if (uploadErr) {
+            showToast(uploadErr.message || 'Failed to upload profile picture', 'error');
             return;
           }
 
-          const avatarUrl = `http://localhost:5000/uploads/${data.user.profile_image}`;
+          // Update profiles table profile_image with the storage path
+          const { error: updateErr } = await supabase
+            .from('profiles')
+            .update({ profile_image: fileName })
+            .eq('id', user.id);
+
+          if (updateErr) {
+            showToast(updateErr.message || 'Failed to update profile image path', 'error');
+            return;
+          }
+
+          // Get public URL
+          const { data: urlData } = supabase.storage.from('certificates').getPublicUrl(fileName);
+          const avatarUrl = urlData.publicUrl;
           
           // Update all profile images on page
           document.querySelectorAll('img').forEach(img => {
@@ -263,6 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           });
           
+          localStorage.setItem('profile_avatar', avatarUrl);
           showToast('Profile picture updated successfully', 'success');
         } catch (error) {
           console.error('Error uploading avatar:', error);

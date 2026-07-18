@@ -9,57 +9,76 @@ let selectedCategory = 'all';
 let editSelectedFile = null;
 let editSelectedFileDataUrl = null;
 
-// Helper to decode JWT and get user ID
+// Helper to decode user ID from Supabase session
 function getUserIdFromToken() {
-  const token = getAuthToken();
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.user.id;
-  } catch (e) {
-    return null;
+  const keys = Object.keys(localStorage);
+  const sbKey = keys.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+  if (sbKey) {
+    try {
+      const session = JSON.parse(localStorage.getItem(sbKey));
+      return session.user.id;
+    } catch (e) {
+      return null;
+    }
   }
+  // Try sessionStorage
+  const keysSession = Object.keys(sessionStorage);
+  const sbKeySession = keysSession.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+  if (sbKeySession) {
+    try {
+      const session = JSON.parse(sessionStorage.getItem(sbKeySession));
+      return session.user.id;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
 }
 
 // Fetch certificates from backend
 async function fetchCertificates() {
-  const token = getAuthToken();
-  if (!token) return;
-
   try {
-    const response = await fetch('http://localhost:5000/api/certificates', {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    const userId = getUserIdFromToken();
+    if (!userId) return;
+
+    const { data, error } = await supabase
+      .from('certificates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to fetch certificates from Supabase:', error);
+      return;
+    }
+
+    // Load favorites from local storage to keep schema intact
+    const favKey = `favorites_user_${userId}`;
+    const favs = JSON.parse(localStorage.getItem(favKey)) || [];
+
+    // Map database schema fields to frontend fields
+    certificates = data.map(cert => {
+      let fileUrl = cert.file_path;
+      if (cert.file_path && !cert.file_path.startsWith('http')) {
+        const { data: urlData } = supabase.storage.from('certificates').getPublicUrl(cert.file_path);
+        fileUrl = urlData.publicUrl;
       }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      
-      // Load favorites from local storage to keep schema intact
-      const userId = getUserIdFromToken();
-      const favKey = userId ? `favorites_user_${userId}` : 'favorites_user_guest';
-      const favs = JSON.parse(localStorage.getItem(favKey)) || [];
-
-      // Map database schema fields to frontend fields
-      certificates = data.map(cert => ({
+      return {
         id: cert.id,
         title: cert.title,
         org: cert.organization,
         category: cert.category,
         date: cert.issue_date ? cert.issue_date.split('T')[0] : '',
         favorite: favs.includes(cert.id),
-        credentialId: cert.credentialId || ('CERT-' + cert.id),
+        credentialId: 'CERT-' + cert.id,
         url: cert.verification_url,
         description: cert.description,
         imageName: cert.file_path,
-        image: cert.file_path ? `http://localhost:5000/uploads/${cert.file_path}` : null
-      }));
+        image: fileUrl
+      };
+    });
 
-      renderDashboard();
-    } else {
-      console.error('Failed to fetch certificates from server');
-    }
+    renderDashboard();
   } catch (error) {
     console.error('Error fetching certificates:', error);
   }
@@ -704,20 +723,19 @@ function openDeleteModal(cert) {
   if (confirmBtn) {
     confirmBtn.onclick = async () => {
       closeModal('delete-confirmation-modal');
-      const token = getAuthToken();
       try {
-        const response = await fetch(`http://localhost:5000/api/certificates/${cert.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        const data = await response.json();
-        
-        if (!response.ok) {
-          showToast(data.message || 'Failed to delete certificate', 'error');
+        const { error: dbErr } = await supabase
+          .from('certificates')
+          .delete()
+          .eq('id', cert.id);
+
+        if (dbErr) {
+          showToast(dbErr.message || 'Failed to delete certificate', 'error');
           return;
+        }
+
+        if (cert.imageName) {
+          await supabase.storage.from('certificates').remove([cert.imageName]);
         }
 
         // Fade out card before deletion
@@ -925,33 +943,60 @@ function setupEditModalForm() {
     }
 
     if (isValid) {
-      const formData = new FormData();
-      formData.append('title', titleVal);
-      formData.append('organization', orgVal);
-      formData.append('category', catSelect.value);
-      formData.append('issue_date', dateVal || new Date().toISOString().split('T')[0]);
-      formData.append('verification_url', urlVal || '#');
-      formData.append('credentialId', credIdVal);
-      formData.append('description', descVal || 'No description provided.');
-      
-      if (editSelectedFile) {
-        formData.append('file', editSelectedFile);
-      }
-
-      const token = getAuthToken();
       try {
-        const response = await fetch(`http://localhost:5000/api/certificates/${idVal}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          showToast('User not authenticated.', 'error');
+          return;
+        }
 
-        const data = await response.json();
+        const cert = certificates.find(c => Number(c.id) === Number(idVal));
+        if (!cert) {
+          showToast('Certificate not found.', 'error');
+          return;
+        }
 
-        if (!response.ok) {
-          showToast(data.message || 'Failed to update certificate', 'error');
+        let updatedFilePath = cert.imageName;
+
+        if (editSelectedFile) {
+          const fileExt = editSelectedFile.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+          // Upload new file to Supabase storage
+          const { error: uploadErr } = await supabase.storage
+            .from('certificates')
+            .upload(fileName, editSelectedFile, {
+              upsert: true
+            });
+
+          if (uploadErr) {
+            showToast(uploadErr.message || 'Failed to upload new certificate file', 'error');
+            return;
+          }
+
+          // If upload succeeded, update the file path and remove old file if it exists
+          updatedFilePath = fileName;
+          if (cert.imageName) {
+            await supabase.storage.from('certificates').remove([cert.imageName]);
+          }
+        }
+
+        // Update database row in Supabase
+        const { error: dbErr } = await supabase
+          .from('certificates')
+          .update({
+            title: titleVal,
+            organization: orgVal,
+            category: catSelect.value,
+            issue_date: dateVal || new Date().toISOString().split('T')[0],
+            verification_url: urlVal || '#',
+            description: descVal || 'No description provided.',
+            file_path: updatedFilePath
+          })
+          .eq('id', idVal);
+
+        if (dbErr) {
+          showToast(dbErr.message || 'Failed to update certificate', 'error');
           return;
         }
 

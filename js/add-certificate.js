@@ -173,29 +173,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (isValid) {
-      const formData = new FormData();
-      formData.append('title', certTitle.value.trim());
-      formData.append('organization', certOrg.value.trim());
-      formData.append('category', certCategory.value);
-      formData.append('issue_date', document.getElementById('cert-date').value || new Date().toISOString().split('T')[0]);
-      formData.append('verification_url', document.getElementById('cert-url').value.trim() || '#');
-      formData.append('description', document.getElementById('cert-description').value.trim() || 'No description provided.');
-      formData.append('file', selectedFile);
-
-      const token = getAuthToken();
       try {
-        const response = await fetch('http://localhost:5000/api/certificates', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          showToast('User not authenticated.', 'error');
+          return;
+        }
 
-        const data = await response.json();
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-        if (!response.ok) {
-          showToast(data.message || 'Failed to save certificate', 'error');
+        // Upload file to Supabase storage
+        const { error: uploadErr } = await supabase.storage
+          .from('certificates')
+          .upload(fileName, selectedFile, {
+            upsert: true
+          });
+
+        if (uploadErr) {
+          showToast(uploadErr.message || 'Failed to upload certificate file', 'error');
+          return;
+        }
+
+        // Insert row in public.certificates
+        const { error: dbErr } = await supabase
+          .from('certificates')
+          .insert({
+            user_id: user.id,
+            title: certTitle.value.trim(),
+            organization: certOrg.value.trim(),
+            category: certCategory.value,
+            issue_date: document.getElementById('cert-date').value || new Date().toISOString().split('T')[0],
+            verification_url: document.getElementById('cert-url').value.trim() || '#',
+            description: document.getElementById('cert-description').value.trim() || 'No description provided.',
+            file_path: fileName
+          });
+
+        if (dbErr) {
+          showToast(dbErr.message || 'Failed to save certificate', 'error');
+          // cleanup uploaded file on DB insert error
+          await supabase.storage.from('certificates').remove([fileName]);
           return;
         }
 

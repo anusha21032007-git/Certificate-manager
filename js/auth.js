@@ -1,5 +1,4 @@
-// Redesigned Authentication Logic for Certificate Manager
-const API_URL = 'http://localhost:5000/api';
+// Redesigned Authentication Logic for Certificate Manager using Supabase
 
 document.addEventListener('DOMContentLoaded', () => {
   // If user is already logged in, redirect to dashboard
@@ -37,7 +36,7 @@ async function handleLoginSubmit(e) {
 
   // Validation
   if (emailVal === '') {
-    setError('login-email', 'Email or Username is required.');
+    setError('login-email', 'Email is required.');
     isValid = false;
   } else {
     setError('login-email', '');
@@ -56,31 +55,25 @@ async function handleLoginSubmit(e) {
   setLoading('login', true);
 
   try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        emailOrUsername: emailVal,
-        password: passwordVal
-      })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: emailVal,
+      password: passwordVal
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      showToast(data.message || 'Login failed. Please try again.', 'error');
+    if (error) {
+      showToast(error.message || 'Login failed. Please try again.', 'error');
       setLoading('login', false);
       return;
     }
 
+    const session = data.session;
+
     // Secure Storage Integration (Remember Me checkbox logic)
     if (rememberCheckbox && rememberCheckbox.checked) {
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('token', session.access_token);
       sessionStorage.removeItem('token'); // clear tab session to prevent conflict
     } else {
-      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('token', session.access_token);
       localStorage.removeItem('token'); // clear persistent session to prevent override
     }
 
@@ -92,7 +85,7 @@ async function handleLoginSubmit(e) {
 
   } catch (error) {
     console.error('Login request failed:', error);
-    showToast('Network error. Is the server running?', 'error');
+    showToast('An unexpected network error occurred.', 'error');
     setLoading('login', false);
   }
 }
@@ -196,23 +189,19 @@ async function handleRegisterSubmit(e) {
   setLoading('register', true);
 
   try {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: usernameVal,
-        full_name: fullnameVal,
-        email: emailVal,
-        password: passwordVal
-      })
+    const { data, error } = await supabase.auth.signUp({
+      email: emailVal,
+      password: passwordVal,
+      options: {
+        data: {
+          username: usernameVal,
+          full_name: fullnameVal
+        }
+      }
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      showToast(data.message || 'Registration failed. Please try again.', 'error');
+    if (error) {
+      showToast(error.message || 'Registration failed. Please try again.', 'error');
       setLoading('register', false);
       return;
     }
@@ -225,7 +214,7 @@ async function handleRegisterSubmit(e) {
 
   } catch (error) {
     console.error('Registration request failed:', error);
-    showToast('Network error. Is the server running?', 'error');
+    showToast('An unexpected network error occurred.', 'error');
     setLoading('register', false);
   }
 }
@@ -248,10 +237,32 @@ function togglePasswordVisibility(inputId) {
   }
 }
 
-// --- Forgot Password Link Mock Trigger ---
-function handleForgotPassword(e) {
+// --- Forgot Password Link Supabase Trigger ---
+async function handleForgotPassword(e) {
   e.preventDefault();
-  showToast('Password reset demo: Please contact your database administrator to configure mailer setups.', 'error');
+  const emailField = document.getElementById('login-email');
+  const emailVal = emailField.value.trim();
+
+  if (emailVal === '') {
+    showToast('Please enter your email in the email field first.', 'error');
+    setError('login-email', 'Email is required to request password reset.');
+    return;
+  }
+
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(emailVal, {
+      redirectTo: window.location.origin + '/login.html'
+    });
+
+    if (error) {
+      showToast(error.message, 'error');
+    } else {
+      showToast('Password reset link sent to your email!', 'success');
+    }
+  } catch (error) {
+    console.error('Password reset failed:', error);
+    showToast('Network error requesting password reset.', 'error');
+  }
 }
 
 // --- UI Helpers ---
