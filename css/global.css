@@ -522,3 +522,25 @@ body.modal-open {
     transform: scale(1) translateY(0);
   }
 }
+
+/* Dashboard Sections SPA styling & animations */
+.dashboard-section {
+  display: none;
+  opacity: 0;
+}
+
+.dashboard-section.active {
+  display: block;
+  animation: sectionEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

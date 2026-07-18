@@ -1,36 +1,93 @@
 // Theme Manager for Certificate Management System
+window.getAuthToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
 (function () {
-  // Apply saved theme as early as possible to prevent white flash
-  const savedTheme = sessionStorage.getItem('theme') || 'light';
-  if (savedTheme === 'dark') {
-    document.body.classList.add('dark');
-  } else {
-    document.body.classList.remove('dark');
+  // Always dark mode
+  document.body.classList.add('dark');
+  sessionStorage.setItem('theme', 'dark');
+
+  // Protect page: search both localStorage and sessionStorage
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const path = window.location.pathname;
+  if (!token && !path.includes('login.html') && !path.includes('register.html')) {
+    window.location.href = 'login.html';
   }
 })();
 
-// Initialize theme toggling hook when DOM is loaded
+// Initialize hooks when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  // Automatically bind theme toggles if present on the page
-  const lightBtn = document.getElementById('theme-light-btn');
-  const darkBtn = document.getElementById('theme-dark-btn');
-
-  if (lightBtn && darkBtn) {
-    lightBtn.addEventListener('click', () => setTheme('light'));
-    darkBtn.addEventListener('click', () => setTheme('dark'));
-    updateThemeButtons();
+  // Load profile picture from localStorage if exists
+  const savedAvatar = localStorage.getItem('profile_avatar');
+  if (savedAvatar) {
+    document.querySelectorAll('img').forEach(img => {
+      if (img.src.includes('images/profile.png') || img.id === 'profile-avatar-img') {
+        img.src = savedAvatar;
+      }
+    });
   }
 
-  // Bind logout button alert if present
+  // Bind logout button if present
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
+    // Inject logout modal HTML dynamically if it doesn't exist
+    if (!document.getElementById('logout-confirmation-modal')) {
+      const modalDiv = document.createElement('div');
+      modalDiv.className = 'modal-overlay';
+      modalDiv.id = 'logout-confirmation-modal';
+      modalDiv.innerHTML = `
+        <div class="card modal-card logout-confirm-card"
+          style="max-width: 450px; text-align: center; padding: 32px 24px; width: 100%;">
+          <button class="modal-close-btn" onclick="closeModal('logout-confirmation-modal')">&times;</button>
+          <div class="logout-icon-container"
+            style="width: 64px; height: 64px; background-color: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px;">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </div>
+          <h3 style="font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">Confirm Logout</h3>
+          <p style="color: var(--text-muted); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
+            Are you sure you want to log out of your session?
+          </p>
+          <div class="form-actions" style="justify-content: center; gap: 12px; display: flex;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('logout-confirmation-modal')"
+              style="flex: 1;">Cancel</button>
+            <button type="button" id="confirm-logout-btn" class="btn btn-primary" style="flex: 1;">Logout</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+
+      // Add close click handler for backdrop
+      modalDiv.addEventListener('click', (e) => {
+        if (e.target === modalDiv) {
+          closeModal('logout-confirmation-modal');
+        }
+      });
+    }
+
     logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      alert('You have logged out successfully.');
-      // Simulating redirect to login or home
-      window.location.reload();
+      if (typeof openModal === 'function') {
+        openModal('logout-confirmation-modal');
+      } else {
+        const modal = document.getElementById('logout-confirmation-modal');
+        if (modal) modal.classList.add('active');
+      }
     });
+
+    // Bind confirm button inside modal
+    const confirmLogoutBtn = document.getElementById('confirm-logout-btn');
+    if (confirmLogoutBtn) {
+      confirmLogoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        if (typeof closeModal === 'function') {
+          closeModal('logout-confirmation-modal');
+        } else {
+          const modal = document.getElementById('logout-confirmation-modal');
+          if (modal) modal.classList.remove('active');
+        }
+        window.location.href = 'login.html';
+      });
+    }
   }
 
   // Bind responsive sidebar toggle if mobile menu icon is present
@@ -49,44 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-
-/**
- * Sets the active theme and updates UI
- * @param {'light'|'dark'} theme 
- */
-function setTheme(theme) {
-  if (theme === 'dark') {
-    document.body.classList.add('dark');
-    sessionStorage.setItem('theme', 'dark');
-  } else {
-    document.body.classList.remove('dark');
-    sessionStorage.setItem('theme', 'light');
-  }
-  updateThemeButtons();
-}
-
-/**
- * Updates active visual state on settings page theme buttons
- */
-function updateThemeButtons() {
-  const lightBtn = document.getElementById('theme-light-btn');
-  const darkBtn = document.getElementById('theme-dark-btn');
-  if (!lightBtn || !darkBtn) return;
-
-  const activeTheme = sessionStorage.getItem('theme') || 'light';
-
-  if (activeTheme === 'dark') {
-    darkBtn.classList.add('btn-primary');
-    darkBtn.classList.remove('btn-secondary');
-    lightBtn.classList.add('btn-secondary');
-    lightBtn.classList.remove('btn-primary');
-  } else {
-    lightBtn.classList.add('btn-primary');
-    lightBtn.classList.remove('btn-secondary');
-    darkBtn.classList.add('btn-secondary');
-    darkBtn.classList.remove('btn-primary');
-  }
-}
 
 /**
  * Helper function to create premium toast notifications

@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- Form Submit Validation ---
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     // Check elements
@@ -172,44 +172,52 @@ document.addEventListener('DOMContentLoaded', () => {
       setError('file', '');
     }
 
-    // On Successful Validation
     if (isValid) {
-      // Create new certificate item
-      const newCert = {
-        id: Date.now(),
-        title: certTitle.value.trim(),
-        org: certOrg.value.trim(),
-        category: certCategory.value,
-        date: document.getElementById('cert-date').value || new Date().toISOString().split('T')[0],
-        verified: false,
-        favorite: false,
-        credentialId: "CERT-" + Math.floor(10000 + Math.random() * 90000),
-        url: document.getElementById('cert-url').value.trim() || "#",
-        description: document.getElementById('cert-description').value.trim() || "No description provided.",
-        imageName: selectedFile ? selectedFile.name : null,
-        image: selectedFileDataUrl
-      };
+      const formData = new FormData();
+      formData.append('title', certTitle.value.trim());
+      formData.append('organization', certOrg.value.trim());
+      formData.append('category', certCategory.value);
+      formData.append('issue_date', document.getElementById('cert-date').value || new Date().toISOString().split('T')[0]);
+      formData.append('verification_url', document.getElementById('cert-url').value.trim() || '#');
+      formData.append('description', document.getElementById('cert-description').value.trim() || 'No description provided.');
+      formData.append('file', selectedFile);
 
-      // Push to the global array in dashboard.js
-      if (typeof certificates !== 'undefined') {
-        certificates.unshift(newCert); // Add to beginning of array
-      }
+      const token = getAuthToken();
+      try {
+        const response = await fetch('http://localhost:5000/api/certificates', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
 
-      // Show Success Toast
-      showToast('Certificate Saved Successfully', 'success');
-      
-      // Clear form inputs
-      form.reset();
-      clearFile();
+        const data = await response.json();
 
-      // Close modal
-      if (typeof closeModal === 'function') {
-        closeModal('add-certificate-modal');
-      }
+        if (!response.ok) {
+          showToast(data.message || 'Failed to save certificate', 'error');
+          return;
+        }
 
-      // Re-render dashboard
-      if (typeof renderDashboard === 'function') {
-        renderDashboard();
+        // Show Success Toast
+        showToast('Certificate Saved Successfully', 'success');
+        
+        // Clear form inputs
+        form.reset();
+        clearFile();
+
+        // Close modal
+        if (typeof closeModal === 'function') {
+          closeModal('add-certificate-modal');
+        }
+
+        // Re-render dashboard by fetching updated certificates
+        if (typeof fetchCertificates === 'function') {
+          fetchCertificates();
+        }
+      } catch (error) {
+        console.error('Error saving certificate:', error);
+        showToast('Network error saving certificate', 'error');
       }
     }
   });

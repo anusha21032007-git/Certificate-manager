@@ -1,100 +1,87 @@
 // Dashboard Logic for Certificate Management System
 
-// Initial Dummy Data (stored in memory, reset on page reload per requirements)
-let certificates = [
-  {
-    id: 1,
-    title: "AWS Certified Solutions Architect",
-    org: "Amazon Web Services (AWS)",
-    category: "Technical",
-    date: "2026-04-15",
-    verified: true,
-    favorite: true,
-    credentialId: "AWS-ASA-99381-Z",
-    url: "https://aws.amazon.com/verification",
-    description: "Validation of expertise in designing and deploying scalable, highly available, and fault-tolerant systems on AWS."
-  },
-  {
-    id: 2,
-    title: "Google UX Design Professional",
-    org: "Google Career Certificates",
-    category: "Creative",
-    date: "2025-11-20",
-    verified: true,
-    favorite: false,
-    credentialId: "GGL-UX-84729-X",
-    url: "https://coursera.org/verify/googleux",
-    description: "Hands-on education covering the UX design process, user research, wireframing, prototyping, and user testing."
-  },
-  {
-    id: 3,
-    title: "Professional Scrum Master I (PSM I)",
-    org: "Scrum.org",
-    category: "Business",
-    date: "2026-02-08",
-    verified: true,
-    favorite: true,
-    credentialId: "SCRUM-PSM-10294",
-    url: "https://scrum.org/certificates/verify",
-    description: "Demonstrated understanding of the Scrum framework and its application in modern software delivery teams."
-  },
-  {
-    id: 4,
-    title: "Advanced JavaScript & ES6 Mastery",
-    org: "Udemy Academy",
-    category: "Technical",
-    date: "2026-05-10",
-    verified: false,
-    favorite: false,
-    credentialId: "UDM-JS-44390-L",
-    url: "https://udemy.com/certificate/js-mastery",
-    description: "Deep dive into execution context, closures, prototypal inheritance, asynchronous JS, promises, and modular design."
-  },
-  {
-    id: 5,
-    title: "EFSET English Certificate (C2 Proficient)",
-    org: "EF Standard English Test",
-    category: "Language",
-    date: "2025-08-30",
-    verified: true,
-    favorite: false,
-    credentialId: "EF-C2-884920",
-    url: "https://efset.org/cert/C2",
-    description: "Certified standard English score equivalent to CEFR C2 level for reading comprehension and listening skills."
-  },
-  {
-    id: 6,
-    title: "Python for Data Science & AI",
-    org: "IBM Skills Network",
-    category: "Technical",
-    date: "2026-01-18",
-    verified: true,
-    favorite: false,
-    credentialId: "IBM-DS-77391-P",
-    url: "https://credly.com/verify/ibm-python",
-    description: "Foundational Python coding, data analysis with Pandas/NumPy, data visualization, and introduction to APIs."
-  }
-];
+let certificates = [];
 
 // Active State Variables
 let activeFilter = 'all'; // 'all' or 'favorites'
 let searchKeyword = '';
+let selectedCategory = 'all';
 let editSelectedFile = null;
 let editSelectedFileDataUrl = null;
 
+// Helper to decode JWT and get user ID
+function getUserIdFromToken() {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.user.id;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Fetch certificates from backend
+async function fetchCertificates() {
+  const token = getAuthToken();
+  if (!token) return;
+
+  try {
+    const response = await fetch('http://localhost:5000/api/certificates', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Load favorites from local storage to keep schema intact
+      const userId = getUserIdFromToken();
+      const favKey = userId ? `favorites_user_${userId}` : 'favorites_user_guest';
+      const favs = JSON.parse(localStorage.getItem(favKey)) || [];
+
+      // Map database schema fields to frontend fields
+      certificates = data.map(cert => ({
+        id: cert.id,
+        title: cert.title,
+        org: cert.organization,
+        category: cert.category,
+        date: cert.issue_date ? cert.issue_date.split('T')[0] : '',
+        favorite: favs.includes(cert.id),
+        credentialId: cert.credentialId || ('CERT-' + cert.id),
+        url: cert.verification_url,
+        description: cert.description,
+        imageName: cert.file_path,
+        image: cert.file_path ? `http://localhost:5000/uploads/${cert.file_path}` : null
+      }));
+
+      renderDashboard();
+    } else {
+      console.error('Failed to fetch certificates from server');
+    }
+  } catch (error) {
+    console.error('Error fetching certificates:', error);
+  }
+}
+
+window.fetchCertificates = fetchCertificates;
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Check URL query parameters for filter option
+  // Check URL query parameters for section or filter options
   const urlParams = new URLSearchParams(window.location.search);
+  
   if (urlParams.get('filter') === 'favorites') {
     activeFilter = 'favorites';
-    const favoritesBtn = document.getElementById('favorites-menu-btn');
-    if (favoritesBtn) {
-      document.querySelectorAll('.sidebar-menu-item').forEach(li => li.classList.remove('active'));
-      favoritesBtn.parentElement.classList.add('active');
-    }
+    setActiveMenuItem('menu-item-favs');
+    switchSection('certificates-view-section');
+  } else {
+    // Default: certificates view
+    setActiveMenuItem('menu-item-certs');
+    switchSection('certificates-view-section');
   }
   
-  renderDashboard();
+  fetchCertificates();
   setupEventListeners();
 
   // Check URL query parameters for action trigger modal popup
@@ -117,15 +104,17 @@ function renderDashboard() {
   // Clear previous grid contents
   grid.innerHTML = '';
 
-  // Filter list based on search and active sidebar state
+  // Filter list based on search, active sidebar state, and category
   const filteredCerts = certificates.filter(cert => {
     const matchesSearch = cert.title.toLowerCase().includes(searchKeyword.toLowerCase()) || 
                           cert.org.toLowerCase().includes(searchKeyword.toLowerCase());
     
+    const matchesCategory = selectedCategory === 'all' || cert.category.toLowerCase() === selectedCategory.toLowerCase();
+    
     if (activeFilter === 'favorites') {
-      return matchesSearch && cert.favorite;
+      return matchesSearch && matchesCategory && cert.favorite;
     }
-    return matchesSearch;
+    return matchesSearch && matchesCategory;
   });
 
   // Update Section Title & Count Tag
@@ -188,10 +177,6 @@ function renderDashboard() {
             <i class="fa-regular fa-calendar"></i>
             <span>Issued: ${formattedDate}</span>
           </div>
-          <span class="verification-status ${cert.verified ? 'verified' : 'unverified'}">
-            <i class="fa-solid ${cert.verified ? 'fa-circle-check' : 'fa-circle-question'}"></i>
-            ${cert.verified ? 'Verified' : 'Pending'}
-          </span>
         </div>
       </div>
     `;
@@ -206,18 +191,33 @@ function renderDashboard() {
     grid.appendChild(card);
   });
 
-  updateMetrics();
 }
 
-// Update Top Metrics Counter Values
-function updateMetrics() {
-  const totalEl = document.getElementById('total-certificates-count');
-  const verifiedEl = document.getElementById('verified-certificates-count');
-  const favEl = document.getElementById('favorites-count');
+// SPA tab switching logic
+function setActiveMenuItem(menuItemId) {
+  document.querySelectorAll('.sidebar-menu-item').forEach(li => {
+    li.classList.remove('active');
+  });
+  const activeLi = document.getElementById(menuItemId);
+  if (activeLi) {
+    activeLi.classList.add('active');
+  }
+}
 
-  if (totalEl) totalEl.textContent = certificates.length;
-  if (verifiedEl) verifiedEl.textContent = certificates.filter(c => c.verified).length;
-  if (favEl) favEl.textContent = certificates.filter(c => c.favorite).length;
+function switchSection(sectionId) {
+  const sections = document.querySelectorAll('.dashboard-section');
+  sections.forEach(sec => {
+    sec.classList.remove('active');
+    sec.style.display = 'none';
+  });
+
+  const activeSec = document.getElementById(sectionId);
+  if (activeSec) {
+    activeSec.style.display = 'block';
+    // Force a reflow to restart transition
+    activeSec.offsetHeight;
+    activeSec.classList.add('active');
+  }
 }
 
 // Event Listeners Binding
@@ -231,28 +231,27 @@ function setupEventListeners() {
     });
   }
 
-  // Sidebar link toggle between all/favorites
-  const allCertsBtn = document.querySelector('.sidebar-menu-item:first-child');
+  // Sidebar links tab switching
+  const certsBtn = document.getElementById('certificates-menu-btn');
   const favoritesBtn = document.getElementById('favorites-menu-btn');
 
-  if (favoritesBtn && allCertsBtn) {
+  if (certsBtn) {
+    certsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      activeFilter = 'all';
+      setActiveMenuItem('menu-item-certs');
+      switchSection('certificates-view-section');
+      renderDashboard();
+    });
+  }
+
+  if (favoritesBtn) {
     favoritesBtn.addEventListener('click', (e) => {
       e.preventDefault();
       activeFilter = 'favorites';
-      document.querySelectorAll('.sidebar-menu-item').forEach(li => li.classList.remove('active'));
-      favoritesBtn.parentElement.classList.add('active');
+      setActiveMenuItem('menu-item-favs');
+      switchSection('certificates-view-section');
       renderDashboard();
-    });
-
-    allCertsBtn.addEventListener('click', (e) => {
-      // Check if it's currently showing favorites, reset filter
-      if (activeFilter !== 'all') {
-        e.preventDefault();
-        activeFilter = 'all';
-        document.querySelectorAll('.sidebar-menu-item').forEach(li => li.classList.remove('active'));
-        allCertsBtn.classList.add('active');
-        renderDashboard();
-      }
     });
   }
 
@@ -288,7 +287,7 @@ function setupEventListeners() {
   }
 
   // Backdrop click dismissal for all modals
-  ['view-certificate-modal', 'edit-certificate-modal', 'delete-confirmation-modal', 'share-certificate-modal', 'fullscreen-cert-modal'].forEach(modalId => {
+  ['add-certificate-modal', 'profile-modal', 'view-certificate-modal', 'edit-certificate-modal', 'delete-confirmation-modal', 'share-certificate-modal', 'fullscreen-cert-modal', 'logout-confirmation-modal'].forEach(modalId => {
     const container = document.getElementById(modalId);
     if (container) {
       container.addEventListener('click', (e) => {
@@ -299,12 +298,51 @@ function setupEventListeners() {
     }
   });
 
+  // ESC key listener to close modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      activeModals.forEach(modal => {
+        closeModal(modal.id);
+      });
+    }
+  });
+
   setupEditModalForm();
 
   // Close active dropdowns on window clicks
   window.addEventListener('click', () => {
     closeAllDropdowns();
   });
+
+  // Filter Dropdown Handlers
+  const filterBtn = document.getElementById('filter-header-btn');
+  const filterMenu = document.getElementById('filter-dropdown-menu');
+
+  if (filterBtn && filterMenu) {
+    filterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = filterMenu.style.display === 'flex';
+      filterMenu.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    // Handle filter item selection
+    const filterItems = filterMenu.querySelectorAll('.filter-dropdown-item');
+    filterItems.forEach(item => {
+      item.addEventListener('click', () => {
+        // Remove active class from all items, add to clicked item
+        filterItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        // Update selectedCategory state & render
+        selectedCategory = item.dataset.category;
+        renderDashboard();
+
+        // Close menu
+        filterMenu.style.display = 'none';
+      });
+    });
+  }
 }
 
 // Toggle Dropdown Menu Visiblity
@@ -326,6 +364,10 @@ function closeAllDropdowns() {
   document.querySelectorAll('.dropdown-menu').forEach(menu => {
     menu.classList.remove('show');
   });
+  const filterMenu = document.getElementById('filter-dropdown-menu');
+  if (filterMenu) {
+    filterMenu.style.display = 'none';
+  }
 }
 
 // Add/Remove favorites state
@@ -334,6 +376,20 @@ function toggleFavorite(id, event) {
   const cert = certificates.find(c => c.id === id);
   if (cert) {
     cert.favorite = !cert.favorite;
+    
+    // Save to localStorage by user ID to work around schema limits
+    const userId = getUserIdFromToken();
+    if (userId) {
+      const favKey = `favorites_user_${userId}`;
+      let favs = JSON.parse(localStorage.getItem(favKey)) || [];
+      if (cert.favorite) {
+        if (!favs.includes(id)) favs.push(id);
+      } else {
+        favs = favs.filter(favId => favId !== id);
+      }
+      localStorage.setItem(favKey, JSON.stringify(favs));
+    }
+
     showToast(
       cert.favorite ? `"${cert.title}" added to favorites.` : `"${cert.title}" removed from favorites.`, 
       'success'
@@ -418,10 +474,10 @@ window.closeModal = closeModal;
 function openViewModal(cert) {
   const titleEl = document.getElementById('view-cert-title');
   const catEl = document.getElementById('view-cert-category');
+  const catTextEl = document.getElementById('view-cert-category-text');
   const orgEl = document.getElementById('view-cert-org');
   const dateEl = document.getElementById('view-cert-date');
   const credEl = document.getElementById('view-cert-credential-id');
-  const statusEl = document.getElementById('view-cert-status');
   const descEl = document.getElementById('view-cert-description');
   const linkEl = document.getElementById('view-cert-link');
   
@@ -437,14 +493,14 @@ function openViewModal(cert) {
     catEl.textContent = cert.category;
     catEl.className = 'category-tag';
   }
+  if (catTextEl) {
+    catTextEl.textContent = cert.category;
+  }
   if (orgEl) orgEl.textContent = cert.org;
   if (dateEl) dateEl.textContent = cert.date;
   if (credEl) credEl.textContent = cert.credentialId || 'N/A';
   
-  if (statusEl) {
-    statusEl.className = `verification-status ${cert.verified ? 'verified' : 'unverified'}`;
-    statusEl.innerHTML = `<i class="fa-solid ${cert.verified ? 'fa-circle-check' : 'fa-circle-question'}"></i> <span>${cert.verified ? 'Verified' : 'Pending'}</span>`;
-  }
+  // Verification status element was removed
   
   if (descEl) descEl.textContent = cert.description || 'No description provided.';
   
@@ -475,11 +531,47 @@ function openViewModal(cert) {
   if (mockCred) mockCred.textContent = `ID: ${cert.credentialId || 'N/A'}`;
 
   if (mockBadge) {
+    // Remove any existing preview media element first
+    const existingMedia = mockBadge.querySelector('.cert-preview-media');
+    if (existingMedia) {
+      existingMedia.remove();
+    }
+
     if (cert.image) {
-      mockBadge.style.background = `url(${cert.image}) no-repeat center center / cover`;
       mockBadge.querySelector('.cert-mockup-border').style.opacity = '0';
+      const isPdf = cert.imageName && cert.imageName.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        const iframe = document.createElement('iframe');
+        iframe.className = 'cert-preview-media';
+        iframe.src = `${cert.image}#toolbar=0&navpanes=0&scrollbar=0`;
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.border = 'none';
+        iframe.style.borderRadius = 'var(--radius-sm)';
+        iframe.style.position = 'absolute';
+        iframe.style.top = '0';
+        iframe.style.left = '0';
+        iframe.style.zIndex = '1';
+        mockBadge.appendChild(iframe);
+      } else {
+        const img = document.createElement('img');
+        img.className = 'cert-preview-media';
+        img.src = cert.image;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = 'var(--radius-sm)';
+        img.style.position = 'absolute';
+        img.style.top = '0';
+        img.style.left = '0';
+        img.style.zIndex = '1';
+        mockBadge.appendChild(img);
+      }
+      const maximizeBtn = document.getElementById('view-cert-maximize');
+      if (maximizeBtn) {
+        maximizeBtn.style.zIndex = '2';
+      }
     } else {
-      mockBadge.style.background = '';
       mockBadge.querySelector('.cert-mockup-border').style.opacity = '1';
     }
   }
@@ -530,7 +622,12 @@ function openFullscreenModal(cert) {
   if (!container) return;
 
   if (cert.image) {
-    container.innerHTML = `<img src="${cert.image}" alt="Certificate: ${escapeHTML(cert.title)}" style="max-width: 100%; max-height: 85vh; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 2px solid rgba(255,255,255,0.15);">`;
+    const isPdf = cert.imageName && cert.imageName.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      container.innerHTML = `<iframe src="${cert.image}" style="width: 80vw; height: 80vh; border: none; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 2px solid rgba(255,255,255,0.15);"></iframe>`;
+    } else {
+      container.innerHTML = `<img src="${cert.image}" alt="Certificate: ${escapeHTML(cert.title)}" style="max-width: 100%; max-height: 85vh; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); border: 2px solid rgba(255,255,255,0.15);">`;
+    }
   } else {
     const formattedDate = new Date(cert.date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -565,7 +662,6 @@ function openEditModal(cert) {
   document.getElementById('edit-cert-date').value = cert.date;
   document.getElementById('edit-cert-url').value = cert.url === '#' ? '' : cert.url;
   document.getElementById('edit-cert-credentialId').value = cert.credentialId || '';
-  document.getElementById('edit-cert-verified').checked = cert.verified;
   document.getElementById('edit-cert-description').value = cert.description || '';
 
   // Reset file inputs & errors
@@ -579,8 +675,14 @@ function openEditModal(cert) {
   
   if (cert.imageName) {
     previewFilename.textContent = cert.imageName;
-    previewIcon.className = 'fa-regular fa-file-image file-icon';
-    previewIcon.style.color = '#2563eb';
+    const isPdf = cert.imageName.toLowerCase().endsWith('.pdf');
+    if (isPdf) {
+      previewIcon.className = 'fa-regular fa-file-pdf file-icon';
+      previewIcon.style.color = '#ef4444';
+    } else {
+      previewIcon.className = 'fa-regular fa-file-image file-icon';
+      previewIcon.style.color = '#2563eb';
+    }
     filePreview.style.display = 'flex';
   } else {
     filePreview.style.display = 'none';
@@ -598,23 +700,43 @@ function openDeleteModal(cert) {
 
   const confirmBtn = document.getElementById('confirm-delete-btn');
   if (confirmBtn) {
-    confirmBtn.onclick = () => {
+    confirmBtn.onclick = async () => {
       closeModal('delete-confirmation-modal');
-      // Fade out card before deletion
-      const cardEl = document.querySelector(`.certificate-card[data-id="${cert.id}"]`);
-      if (cardEl) {
-        cardEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-        cardEl.style.opacity = '0';
-        cardEl.style.transform = 'scale(0.9)';
-        setTimeout(() => {
+      const token = getAuthToken();
+      try {
+        const response = await fetch(`http://localhost:5000/api/certificates/${cert.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          showToast(data.message || 'Failed to delete certificate', 'error');
+          return;
+        }
+
+        // Fade out card before deletion
+        const cardEl = document.querySelector(`.certificate-card[data-id="${cert.id}"]`);
+        if (cardEl) {
+          cardEl.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          cardEl.style.opacity = '0';
+          cardEl.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            certificates = certificates.filter(c => c.id !== cert.id);
+            showToast(`"${cert.title}" has been deleted successfully.`, 'success');
+            renderDashboard();
+          }, 300);
+        } else {
           certificates = certificates.filter(c => c.id !== cert.id);
           showToast(`"${cert.title}" has been deleted successfully.`, 'success');
           renderDashboard();
-        }, 300);
-      } else {
-        certificates = certificates.filter(c => c.id !== cert.id);
-        showToast(`"${cert.title}" has been deleted successfully.`, 'success');
-        renderDashboard();
+        }
+      } catch (error) {
+        console.error('Error deleting certificate:', error);
+        showToast('Network error deleting certificate', 'error');
       }
     };
   }
@@ -765,7 +887,7 @@ function setupEditModalForm() {
     }
   }
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const idVal = parseInt(document.getElementById('edit-cert-id').value);
@@ -774,7 +896,6 @@ function setupEditModalForm() {
     const dateVal = document.getElementById('edit-cert-date').value;
     const urlVal = document.getElementById('edit-cert-url').value.trim();
     const credIdVal = document.getElementById('edit-cert-credentialId').value.trim();
-    const verifiedVal = document.getElementById('edit-cert-verified').checked;
     const descVal = document.getElementById('edit-cert-description').value.trim();
 
     let isValid = true;
@@ -802,29 +923,42 @@ function setupEditModalForm() {
     }
 
     if (isValid) {
-      const cert = certificates.find(c => c.id === idVal);
-      if (cert) {
-        cert.title = titleVal;
-        cert.org = orgVal;
-        cert.category = catSelect.value;
-        cert.date = dateVal || new Date().toISOString().split('T')[0];
-        cert.url = urlVal || '#';
-        cert.credentialId = credIdVal;
-        cert.verified = verifiedVal;
-        cert.description = descVal || 'No description provided.';
-        
-        if (editSelectedFile) {
-          cert.imageName = editSelectedFile.name;
-          if (editSelectedFileDataUrl) {
-            cert.image = editSelectedFileDataUrl;
-          } else {
-            delete cert.image;
-          }
+      const formData = new FormData();
+      formData.append('title', titleVal);
+      formData.append('organization', orgVal);
+      formData.append('category', catSelect.value);
+      formData.append('issue_date', dateVal || new Date().toISOString().split('T')[0]);
+      formData.append('verification_url', urlVal || '#');
+      formData.append('credentialId', credIdVal);
+      formData.append('description', descVal || 'No description provided.');
+      
+      if (editSelectedFile) {
+        formData.append('file', editSelectedFile);
+      }
+
+      const token = getAuthToken();
+      try {
+        const response = await fetch(`http://localhost:5000/api/certificates/${idVal}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          showToast(data.message || 'Failed to update certificate', 'error');
+          return;
         }
 
         showToast('Certificate Updated Successfully', 'success');
         closeModal('edit-certificate-modal');
-        renderDashboard();
+        fetchCertificates();
+      } catch (error) {
+        console.error('Error updating certificate:', error);
+        showToast('Network error updating certificate', 'error');
       }
     }
   });

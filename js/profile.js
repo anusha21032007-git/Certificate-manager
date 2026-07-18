@@ -1,4 +1,5 @@
 // Profile Page Interaction and Validation Logic
+const AUTH_API = 'http://localhost:5000/api/auth';
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('profile-details-form');
@@ -16,6 +17,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const displayUsername = document.getElementById('display-username');
 
   let isEditMode = false;
+  let initialValues = {};
+
+  // --- Load Profile Data ---
+  async function fetchProfile() {
+    const token = getAuthToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${AUTH_API}/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        
+        // Populate inputs
+        document.getElementById('profile-username').value = user.username;
+        document.getElementById('profile-fullname-input').value = user.full_name;
+        document.getElementById('profile-email').value = user.email;
+        document.getElementById('profile-bio').value = user.bio || '';
+        
+        // Populate displays
+        if (displayName) displayName.textContent = user.full_name;
+        if (displayUsername) displayUsername.textContent = `@${user.username}`;
+        
+        // Populate profile pictures
+        if (user.profile_image) {
+          const avatarUrl = `http://localhost:5000/uploads/${user.profile_image}`;
+          document.querySelectorAll('img').forEach(img => {
+            if (img.src.includes('images/profile.png') || img.id === 'profile-avatar-img') {
+              img.src = avatarUrl;
+            }
+          });
+        }
+
+        saveInitialValues();
+      } else {
+        console.error('Failed to load profile');
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }
 
   // --- Backdrop Click Dismissal ---
   const container = document.getElementById('profile-modal');
@@ -28,104 +74,134 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Toggle profile inputs enabled/disabled
-  editBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    isEditMode = !isEditMode;
+  if (editBtn) {
+    editBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isEditMode = !isEditMode;
 
-    editableInputs.forEach(input => {
-      if (input) {
-        input.disabled = !isEditMode;
+      editableInputs.forEach(input => {
+        if (input) {
+          input.disabled = !isEditMode;
+        }
+      });
+
+      if (isEditMode) {
+        editBtn.classList.add('active');
+        editBtn.setAttribute('title', 'Cancel Editing');
+        if (editableInputs[0]) editableInputs[0].focus();
+        showToast('Profile editing enabled', 'success');
+      } else {
+        editBtn.classList.remove('active');
+        editBtn.setAttribute('title', 'Edit Profile Details');
+        showToast('Profile editing cancelled', 'success');
+        resetFieldValues();
       }
     });
-
-    if (isEditMode) {
-      editBtn.classList.add('active');
-      editBtn.setAttribute('title', 'Cancel Editing');
-      // Focus first element
-      if (editableInputs[0]) editableInputs[0].focus();
-      showToast('Profile editing enabled', 'success');
-    } else {
-      editBtn.classList.remove('active');
-      editBtn.setAttribute('title', 'Edit Profile Details');
-      showToast('Profile editing cancelled', 'success');
-      // Reset values back to original display values
-      resetFieldValues();
-    }
-  });
+  }
 
   // Handle Form Submission
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const currentPass = document.getElementById('current-password').value;
-    const newPass = document.getElementById('new-password').value;
-    const confirmPass = document.getElementById('confirm-password').value;
+      const currentPass = document.getElementById('current-password').value;
+      const newPass = document.getElementById('new-password').value;
+      const confirmPass = document.getElementById('confirm-password').value;
 
-    const usernameVal = document.getElementById('profile-username').value.trim();
-    const fullnameVal = document.getElementById('profile-fullname-input').value.trim();
-    const emailVal = document.getElementById('profile-email').value.trim();
-    const bioVal = document.getElementById('profile-bio').value.trim();
+      const usernameVal = document.getElementById('profile-username').value.trim();
+      const fullnameVal = document.getElementById('profile-fullname-input').value.trim();
+      const emailVal = document.getElementById('profile-email').value.trim();
+      const bioVal = document.getElementById('profile-bio').value.trim();
 
-    // Check basic info inputs if edit mode is active
-    if (isEditMode) {
-      if (usernameVal === '' || fullnameVal === '' || emailVal === '') {
-        alert('Please fill out all required personal information fields.');
-        return;
-      }
-    }
-
-    // Check if password change is attempted
-    const isPasswordAttempted = currentPass !== '' || newPass !== '' || confirmPass !== '';
-
-    if (isPasswordAttempted) {
-      // Validate current password filled
-      if (currentPass === '') {
-        alert('Please enter your current password to set a new password.');
-        return;
-      }
-      
-      // Validate new password fields filled
-      if (newPass === '' || confirmPass === '') {
-        alert('Please fill in both New Password and Confirm Password fields.');
-        return;
+      // Check basic info inputs if edit mode is active
+      if (isEditMode) {
+        if (usernameVal === '' || fullnameVal === '' || emailVal === '') {
+          alert('Please fill out all required personal information fields.');
+          return;
+        }
       }
 
-      // Check if passwords match
-      if (newPass !== confirmPass) {
-        alert('Passwords do not match.'); // Required alert check
-        return;
+      // Check if password change is attempted
+      const isPasswordAttempted = currentPass !== '' || newPass !== '' || confirmPass !== '';
+
+      if (isPasswordAttempted) {
+        if (currentPass === '') {
+          alert('Please enter your current password to set a new password.');
+          return;
+        }
+        if (newPass === '' || confirmPass === '') {
+          alert('Please fill in both New Password and Confirm Password fields.');
+          return;
+        }
+        if (newPass !== confirmPass) {
+          alert('Passwords do not match.');
+          return;
+        }
       }
-    }
 
-    // Success! Update display labels if changed
-    if (displayName) displayName.textContent = fullnameVal;
-    if (displayUsername) displayUsername.textContent = `@${usernameVal}`;
+      const token = getAuthToken();
+      const payload = {
+        username: usernameVal,
+        full_name: fullnameVal,
+        email: emailVal,
+        bio: bioVal
+      };
 
-    // Exit edit mode on inputs
-    isEditMode = false;
-    editBtn.classList.remove('active');
-    editBtn.setAttribute('title', 'Edit Profile Details');
-    editableInputs.forEach(input => {
-      if (input) input.disabled = true;
+      if (isPasswordAttempted) {
+        payload.currentPassword = currentPass;
+        payload.newPassword = newPass;
+      }
+
+      try {
+        const response = await fetch(`${AUTH_API}/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || 'Failed to update profile');
+          showToast(data.message || 'Profile update failed', 'error');
+          return;
+        }
+
+        // Success! Update display labels
+        if (displayName) displayName.textContent = fullnameVal;
+        if (displayUsername) displayUsername.textContent = `@${usernameVal}`;
+
+        // Exit edit mode on inputs
+        isEditMode = false;
+        editBtn.classList.remove('active');
+        editBtn.setAttribute('title', 'Edit Profile Details');
+        editableInputs.forEach(input => {
+          if (input) input.disabled = true;
+        });
+
+        // Clear password inputs
+        document.getElementById('current-password').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('confirm-password').value = '';
+
+        alert('Profile Updated Successfully');
+        showToast('Profile Updated Successfully', 'success');
+        
+        saveInitialValues();
+
+        if (typeof closeModal === 'function') {
+          closeModal('profile-modal');
+        }
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('Network error updating profile');
+      }
     });
+  }
 
-    // Clear password inputs
-    document.getElementById('current-password').value = '';
-    document.getElementById('new-password').value = '';
-    document.getElementById('confirm-password').value = '';
-
-    // Show required success alert
-    alert('Profile Updated Successfully');
-    showToast('Profile Updated Successfully', 'success');
-
-    // Close modal
-    if (typeof closeModal === 'function') {
-      closeModal('profile-modal');
-    }
-  });
-
-  // Store initial values to restore on cancel
-  const initialValues = {};
   function saveInitialValues() {
     initialValues.username = document.getElementById('profile-username').value;
     initialValues.fullname = document.getElementById('profile-fullname-input').value;
@@ -140,7 +216,64 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('profile-bio').value = initialValues.bio || '';
   }
 
-  saveInitialValues();
+  // --- Avatar Image Upload and Preview ---
+  const avatarOverlay = document.querySelector('.profile-avatar-container .avatar-overlay');
+  const avatarInput = document.getElementById('profile-avatar-input');
+  
+  if (avatarOverlay && avatarInput) {
+    avatarOverlay.addEventListener('click', () => {
+      avatarInput.click();
+    });
+    
+    avatarInput.addEventListener('change', async () => {
+      if (avatarInput.files && avatarInput.files[0]) {
+        const file = avatarInput.files[0];
+        
+        if (!file.type.startsWith('image/')) {
+          showToast('Please select a valid image file.', 'error');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('profile_image', file);
+
+        const token = getAuthToken();
+        try {
+          const response = await fetch(`${AUTH_API}/profile`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            showToast(data.message || 'Failed to upload profile picture', 'error');
+            return;
+          }
+
+          const avatarUrl = `http://localhost:5000/uploads/${data.user.profile_image}`;
+          
+          // Update all profile images on page
+          document.querySelectorAll('img').forEach(img => {
+            if (img.src.includes('images/profile.png') || img.id === 'profile-avatar-img') {
+              img.src = avatarUrl;
+            }
+          });
+          
+          showToast('Profile picture updated successfully', 'success');
+        } catch (error) {
+          console.error('Error uploading avatar:', error);
+          showToast('Network error uploading profile picture', 'error');
+        }
+      }
+    });
+  }
+
+  // Fetch initial profile data on startup
+  fetchProfile();
 });
 
 /**
@@ -149,6 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function togglePasswordVisibility(inputId) {
   const input = document.getElementById(inputId);
+  if (!input) return;
   const wrapper = input.parentElement;
   const icon = wrapper.querySelector('.toggle-password-btn i');
 

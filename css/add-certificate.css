@@ -3,9 +3,9 @@
 
 .form-card {
   width: 100%;
-  max-width: 640px;
-  max-height: min(650px, 90vh);
-  padding: 32px;
+  max-width: 480px;
+  max-height: min(480px, 80vh);
+  padding: 20px 24px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
@@ -29,7 +29,7 @@
 }
 
 .form-header {
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .back-link {
@@ -39,7 +39,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   transition: var(--transition);
 }
 
@@ -49,23 +49,23 @@
 }
 
 .form-header h2 {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
 }
 
 .form-header p {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* Form Fields Layout */
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .form-group label {
