@@ -33,6 +33,12 @@
           <span>Favourites</span>
         </a>
       </li>
+      <li class="sidebar-menu-item" id="menu-item-profile">
+        <a href="#" id="profile-menu-btn">
+          <i class="fa-solid fa-user"></i>
+          <span>Profile</span>
+        </a>
+      </li>
     </ul>
     <div class="sidebar-footer">
       <li class="sidebar-menu-item" style="list-style: none;">
@@ -46,6 +52,9 @@
 
   <!-- Top Navigation Bar -->
   <header class="header">
+    <button class="header-btn" id="menu-icon" title="Toggle Sidebar" style="display: none; margin-right: 16px; flex-shrink: 0;">
+      <i class="fa-solid fa-bars"></i>
+    </button>
     <!-- Header Actions -->
     <div class="header-actions" style="width: 100%; justify-content: flex-end;">
       <!-- Search Bar -->
@@ -234,7 +243,8 @@
         <!-- Basic Info Fields -->
         <div class="form-section-title" style="display: flex; justify-content: space-between; align-items: center;">
           <span>Personal Information</span>
-          <button class="edit-profile-btn" id="edit-profile-trigger" type="button" title="Edit Profile Details" style="width: 28px; height: 28px; font-size: 12px; margin-bottom: 4px;">
+          <button class="edit-profile-btn" id="edit-profile-trigger" type="button" title="Edit Profile Details"
+            style="width: 28px; height: 28px; font-size: 12px; margin-bottom: 4px;">
             <i class="fa-solid fa-pen"></i>
           </button>
         </div>
@@ -405,10 +415,16 @@
             <label for="edit-cert-category">Category <span class="required">*</span></label>
             <select id="edit-cert-category" name="category" class="form-control">
               <option value="">Select Category</option>
-              <option value="Technical">Technical</option>
-              <option value="Creative">Creative</option>
-              <option value="Business">Business</option>
-              <option value="Language">Language</option>
+              <option value="academic">Academic</option>
+              <option value="workshop">Workshop</option>
+              <option value="seminar">Seminar</option>
+              <option value="research">Research</option>
+              <option value="project">Project</option>
+              <option value="internship">Internship</option>
+              <option value="course">Course</option>
+              <option value="symposium">Symposium</option>
+              <option value="competition">Competition</option>
+              <option value="other">Other</option>
             </select>
             <span class="error-msg" id="edit-error-category"></span>
           </div>

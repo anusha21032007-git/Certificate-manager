@@ -25,28 +25,31 @@
       </div>
 
       <form id="register-form" novalidate>
-        <!-- Username -->
-        <div class="form-group">
-          <label for="reg-username">Username</label>
-          <div class="auth-input-wrapper">
-            <i class="fa-solid fa-user input-icon"></i>
-            <input type="text" id="reg-username" name="username" class="form-control" placeholder="e.g. john_doe">
+        <!-- Username & Full Name Row -->
+        <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 0;">
+          <!-- Username -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-username">Username</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input type="text" id="reg-username" name="username" class="form-control" placeholder="e.g. john_doe">
+            </div>
+            <span class="error-msg" id="error-reg-username"></span>
           </div>
-          <span class="error-msg" id="error-reg-username"></span>
-        </div>
 
-        <!-- Full Name -->
-        <div class="form-group">
-          <label for="reg-fullname">Full Name</label>
-          <div class="auth-input-wrapper">
-            <i class="fa-solid fa-address-card input-icon"></i>
-            <input type="text" id="reg-fullname" name="full_name" class="form-control" placeholder="e.g. John Doe">
+          <!-- Full Name -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-fullname">Full Name</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-address-card input-icon"></i>
+              <input type="text" id="reg-fullname" name="full_name" class="form-control" placeholder="e.g. John Doe">
+            </div>
+            <span class="error-msg" id="error-reg-fullname"></span>
           </div>
-          <span class="error-msg" id="error-reg-fullname"></span>
         </div>
 
         <!-- Email -->
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 0;">
           <label for="reg-email">Email Address</label>
           <div class="auth-input-wrapper">
             <i class="fa-solid fa-envelope input-icon"></i>
@@ -55,30 +58,33 @@
           <span class="error-msg" id="error-reg-email"></span>
         </div>
 
-        <!-- Password -->
-        <div class="form-group">
-          <label for="reg-password">Password</label>
-          <div class="auth-input-wrapper">
-            <i class="fa-solid fa-lock input-icon"></i>
-            <input type="password" id="reg-password" name="password" class="form-control" placeholder="At least 8 characters">
-            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-password')">
-              <i class="fa-solid fa-eye-slash"></i>
-            </button>
+        <!-- Password & Confirm Password Row -->
+        <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 0;">
+          <!-- Password -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-password">Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-password" name="password" class="form-control" placeholder="Password">
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-password')">
+                <i class="fa-solid fa-eye-slash"></i>
+              </button>
+            </div>
+            <span class="error-msg" id="error-reg-password"></span>
           </div>
-          <span class="error-msg" id="error-reg-password"></span>
-        </div>
 
-        <!-- Confirm Password -->
-        <div class="form-group">
-          <label for="reg-confirm-password">Confirm Password</label>
-          <div class="auth-input-wrapper">
-            <i class="fa-solid fa-lock input-icon"></i>
-            <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control" placeholder="Confirm your password">
-            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-confirm-password')">
-              <i class="fa-solid fa-eye-slash"></i>
-            </button>
+          <!-- Confirm Password -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-confirm-password">Confirm Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control" placeholder="Confirm">
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-confirm-password')">
+                <i class="fa-solid fa-eye-slash"></i>
+              </button>
+            </div>
+            <span class="error-msg" id="error-reg-confirm-password"></span>
           </div>
-          <span class="error-msg" id="error-reg-confirm-password"></span>
         </div>
 
         <!-- Submit Button -->

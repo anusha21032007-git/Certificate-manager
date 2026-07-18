@@ -285,6 +285,13 @@ function setupEventListeners() {
       openModal('profile-modal');
     });
   }
+  const profileMenuBtn = document.getElementById('profile-menu-btn');
+  if (profileMenuBtn) {
+    profileMenuBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal('profile-modal');
+    });
+  }
 
   // Backdrop click dismissal for all modals
   ['add-certificate-modal', 'profile-modal', 'view-certificate-modal', 'edit-certificate-modal', 'delete-confirmation-modal', 'share-certificate-modal', 'fullscreen-cert-modal', 'logout-confirmation-modal'].forEach(modalId => {
@@ -473,7 +480,6 @@ window.closeModal = closeModal;
 
 function openViewModal(cert) {
   const titleEl = document.getElementById('view-cert-title');
-  const catEl = document.getElementById('view-cert-category');
   const catTextEl = document.getElementById('view-cert-category-text');
   const orgEl = document.getElementById('view-cert-org');
   const dateEl = document.getElementById('view-cert-date');
@@ -489,10 +495,6 @@ function openViewModal(cert) {
   const mockBadge = document.getElementById('view-cert-mockup');
 
   if (titleEl) titleEl.textContent = cert.title;
-  if (catEl) {
-    catEl.textContent = cert.category;
-    catEl.className = 'category-tag';
-  }
   if (catTextEl) {
     catTextEl.textContent = cert.category;
   }

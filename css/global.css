@@ -439,8 +439,18 @@ a {
   }
 }
 
+#menu-item-profile {
+  display: none;
+}
+
 /* Responsive layout adjustments */
 @media (max-width: 768px) {
+  #menu-item-profile {
+    display: block;
+  }
+  #menu-icon {
+    display: flex !important;
+  }
   .sidebar {
     transform: translateX(-100%);
   }
