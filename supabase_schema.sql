@@ -5,6 +5,7 @@ create table if not exists public.profiles (
   id uuid references auth.users on delete cascade primary key,
   username text unique not null,
   full_name text not null,
+  email text,
   bio text default '',
   profile_image text default '',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -34,11 +35,12 @@ alter table public.certificates enable row level security;
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, full_name, bio, profile_image)
+  insert into public.profiles (id, username, full_name, email, bio, profile_image)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
     coalesce(new.raw_user_meta_data->>'full_name', ''),
+    new.email,
     '',
     ''
   );
@@ -52,6 +54,33 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- RPC function to lookup user email by username (accessible to anon during sign-in)
+create or replace function public.get_user_email_by_username(p_username text)
+returns text as $$
+declare
+  v_email text;
+begin
+  select email into v_email from public.profiles where lower(username) = lower(p_username) limit 1;
+  if v_email is null then
+    select u.email into v_email
+    from auth.users u
+    join public.profiles p on p.id = u.id
+    where lower(p.username) = lower(p_username)
+    limit 1;
+  end if;
+  if v_email is null then
+    select email into v_email
+    from auth.users
+    where lower(raw_user_meta_data->>'username') = lower(p_username)
+    limit 1;
+  end if;
+  return v_email;
+end;
+$$ language plpgsql security definer;
+
+-- Grant execution permissions to anon and authenticated roles for sign-in lookup
+grant execute on function public.get_user_email_by_username(text) to anon, authenticated, service_role;
+
 -- 4. Storage Bucket configuration
 -- Supabase Storage is managed under the storage schema. We can ensure the bucket exists:
 insert into storage.buckets (id, name, public)
@@ -61,8 +90,9 @@ on conflict (id) do nothing;
 -- 5. Row Level Security (RLS) Policies
 
 -- Profiles Policies
-create policy "Users can read own profile" on public.profiles
-  for select using (auth.uid() = id);
+drop policy if exists "Public profile lookup by username" on public.profiles;
+create policy "Public profile lookup by username" on public.profiles
+  for select using (true);
 
 create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = id);
@@ -81,18 +111,22 @@ create policy "Users can delete own certificates" on public.certificates
   for delete using (auth.uid() = user_id);
 
 -- Storage bucket 'certificates' policies
--- Allow select for files in user's folder (prefixed with user_id)
-create policy "Allow select of own certificate files" on storage.objects
-  for select using (bucket_id = 'certificates' and auth.uid()::text = (storage.foldername(name))[1]);
+drop policy if exists "Allow select of own certificate files" on storage.objects;
+drop policy if exists "Allow select of certificate files" on storage.objects;
+create policy "Allow select of certificate files" on storage.objects
+  for select using (bucket_id = 'certificates');
 
 -- Allow insert of files in user's folder (prefixed with user_id)
+drop policy if exists "Allow insert of own certificate files" on storage.objects;
 create policy "Allow insert of own certificate files" on storage.objects
   for insert with check (bucket_id = 'certificates' and auth.uid()::text = (storage.foldername(name))[1]);
 
 -- Allow update of files in user's folder (prefixed with user_id)
+drop policy if exists "Allow update of own certificate files" on storage.objects;
 create policy "Allow update of own certificate files" on storage.objects
   for update using (bucket_id = 'certificates' and auth.uid()::text = (storage.foldername(name))[1]);
 
 -- Allow delete of files in user's folder (prefixed with user_id)
+drop policy if exists "Allow delete of own certificate files" on storage.objects;
 create policy "Allow delete of own certificate files" on storage.objects
   for delete using (bucket_id = 'certificates' and auth.uid()::text = (storage.foldername(name))[1]);

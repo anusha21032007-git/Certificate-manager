@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Certificate Manager</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body class="dark auth-body">
+
+  <div class="auth-wrapper">
+    <div class="card auth-card">
+      <div class="auth-logo">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <h1>CertiManager</h1>
+      </div>
+      
+      <div class="auth-header">
+        <h2>Create Account</h2>
+        <p>Start tracking and sharing your certificates.</p>
+      </div>
+
+      <form id="register-form" novalidate>
+        <!-- Username & Full Name Row -->
+        <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 0;">
+          <!-- Username -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-username">Username</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-user input-icon"></i>
+              <input type="text" id="reg-username" name="username" class="form-control" placeholder="e.g. john_doe">
+            </div>
+            <span class="error-msg" id="error-reg-username"></span>
+          </div>
+
+          <!-- Full Name -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-fullname">Full Name</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-address-card input-icon"></i>
+              <input type="text" id="reg-fullname" name="full_name" class="form-control" placeholder="e.g. John Doe">
+            </div>
+            <span class="error-msg" id="error-reg-fullname"></span>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="reg-email">Email Address</label>
+          <div class="auth-input-wrapper">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" id="reg-email" name="email" class="form-control" placeholder="e.g. john@example.com">
+          </div>
+          <span class="error-msg" id="error-reg-email"></span>
+        </div>
+
+        <!-- Password & Confirm Password Row -->
+        <div class="form-row" style="display: flex; gap: 12px; margin-bottom: 0;">
+          <!-- Password -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-password">Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-password" name="password" class="form-control" placeholder="Password">
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-password')">
+                <i class="fa-solid fa-eye-slash"></i>
+              </button>
+            </div>
+            <span class="error-msg" id="error-reg-password"></span>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group" style="flex: 1; margin-bottom: 0;">
+            <label for="reg-confirm-password">Confirm Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fa-solid fa-lock input-icon"></i>
+              <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control" placeholder="Confirm">
+              <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reg-confirm-password')">
+                <i class="fa-solid fa-eye-slash"></i>
+              </button>
+            </div>
+            <span class="error-msg" id="error-reg-confirm-password"></span>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-block btn-auth" id="register-submit-btn">
+          <span class="btn-text">Sign Up</span>
+          <span class="spinner" style="display: none;"><i class="fa-solid fa-circle-notch"></i></span>
+        </button>
+
+        <div class="auth-footer-links">
+          <p>Already have an account? <a href="login.html">Sign In</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

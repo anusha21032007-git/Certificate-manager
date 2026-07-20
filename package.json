@@ -19,6 +19,9 @@
   },
   "homepage": "https://github.com/anusha21032007-git/Certificate-manager#readme",
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

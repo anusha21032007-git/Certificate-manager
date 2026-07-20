@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Certificate Manager</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body class="dark auth-body">
+
+  <div class="auth-wrapper">
+    <div class="card auth-card">
+      <div class="auth-logo">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <h1>CertiManager</h1>
+      </div>
+
+      <div class="auth-header">
+
+        <p>Sign in to manage and verify your achievements.</p>
+      </div>
+
+      <form id="login-form" novalidate>
+        <!-- Username or Email -->
+        <div class="form-group">
+          <label for="login-email">Username or Email</label>
+          <div class="auth-input-wrapper">
+            <i class="fa-solid fa-user input-icon"></i>
+            <input type="text" id="login-email" name="email" class="form-control" placeholder="Enter username or email">
+          </div>
+          <span class="error-msg" id="error-login-email"></span>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="auth-input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="login-password" name="password" class="form-control" placeholder="••••••••">
+            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('login-password')">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+          <span class="error-msg" id="error-login-password"></span>
+        </div>
+
+        <!-- Forgot Password -->
+        <div class="form-actions">
+          <a href="#" class="forgot-password-link" onclick="handleForgotPassword(event)">Forgot Password?</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-block btn-auth" id="login-submit-btn">
+          <span class="btn-text">Sign In</span>
+          <span class="spinner" style="display: none;"><i class="fa-solid fa-circle-notch"></i></span>
+        </button>
+
+        <div class="auth-footer-links">
+          <p>Don't have an account? <a href="register.html">Sign Up</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal-backdrop" id="reset-password-modal" style="display: none;">
+    <div class="card auth-card modal-card">
+      <div class="auth-logo">
+        <i class="fa-solid fa-key"></i>
+        <h1>Reset Password</h1>
+      </div>
+      <div class="auth-header">
+        <p>Set a new password for your account.</p>
+      </div>
+
+      <form id="reset-password-form" novalidate>
+        <!-- New Password -->
+        <div class="form-group">
+          <label for="reset-new-password">New Password</label>
+          <div class="auth-input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="reset-new-password" name="newPassword" class="form-control" placeholder="••••••••">
+            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reset-new-password')">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+          <span class="error-msg" id="error-reset-new-password"></span>
+        </div>
+
+        <!-- Confirm New Password -->
+        <div class="form-group">
+          <label for="reset-confirm-password">Confirm Password</label>
+          <div class="auth-input-wrapper">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" id="reset-confirm-password" name="confirmPassword" class="form-control" placeholder="••••••••">
+            <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('reset-confirm-password')">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+          <span class="error-msg" id="error-reset-confirm-password"></span>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-block btn-auth" id="reset-submit-btn">
+          <span class="btn-text">Update Password</span>
+          <span class="spinner" style="display: none;"><i class="fa-solid fa-circle-notch"></i></span>
+        </button>
+
+        <div class="auth-footer-links">
+          <p><a href="#" onclick="closeResetModal(event)">Back to Sign In</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+
+</html>
