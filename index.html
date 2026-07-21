@@ -60,21 +60,29 @@
       <!-- Search Bar -->
       <div class="search-container">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="search-bar" class="search-input" placeholder="Search certificates by title...">
+        <input type="text" id="search-bar" class="search-input" placeholder="Search certificates by title, org, category...">
       </div>
 
       <div class="filter-dropdown-container">
-        <button class="header-btn" id="filter-header-btn" title="Filter Certificates">
+        <button class="header-btn" id="filter-header-btn" title="Filter Categories">
           <i class="fa-solid fa-filter"></i>
         </button>
         <div class="filter-dropdown-menu" id="filter-dropdown-menu">
           <div class="filter-dropdown-item active" data-category="all">All Categories</div>
-          <div class="filter-dropdown-item" data-category="Technical">Technical</div>
-          <div class="filter-dropdown-item" data-category="Creative">Creative</div>
-          <div class="filter-dropdown-item" data-category="Business">Business</div>
-          <div class="filter-dropdown-item" data-category="Language">Language</div>
-          <div class="filter-dropdown-item" data-category="Academic">Academic</div>
-          <div class="filter-dropdown-item" data-category="Other">Other</div>
+        </div>
+      </div>
+
+      <div class="sort-dropdown-container" style="position: relative;">
+        <button class="header-btn" id="sort-header-btn" title="Sort Certificates">
+          <i class="fa-solid fa-arrow-down-short-wide"></i>
+        </button>
+        <div class="filter-dropdown-menu" id="sort-dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 8px; z-index: 100;">
+          <div class="filter-dropdown-item sort-item active" data-sort="date-desc">Newest First</div>
+          <div class="filter-dropdown-item sort-item" data-sort="date-asc">Oldest First</div>
+          <div class="filter-dropdown-item sort-item" data-sort="title-asc">Title (A-Z)</div>
+          <div class="filter-dropdown-item sort-item" data-sort="title-desc">Title (Z-A)</div>
+          <div class="filter-dropdown-item sort-item" data-sort="category-asc">Category (A-Z)</div>
+          <div class="filter-dropdown-item sort-item" data-sort="org-asc">Organization (A-Z)</div>
         </div>
       </div>
 
@@ -147,19 +155,7 @@
           </div>
           <div class="form-group flex-1">
             <label for="cert-category">Category <span class="required">*</span></label>
-            <select id="cert-category" name="category" class="form-control">
-              <option value="">Select Category</option>
-              <option value="academic">Academic</option>
-              <option value="workshop">Workshop</option>
-              <option value="seminar">Seminar</option>
-              <option value="research">Research</option>
-              <option value="project">Project</option>
-              <option value="internship">Internship</option>
-              <option value="course">Course</option>
-              <option value="symposium">Symposium</option>
-              <option value="competition">Competition</option>
-              <option value="other">Other</option>
-            </select>
+            <input type="text" id="cert-category" name="category" class="form-control" placeholder="e.g. Workshop, Internship, Hackathon...">
             <span class="error-msg" id="error-category"></span>
           </div>
         </div>
@@ -413,19 +409,7 @@
           </div>
           <div class="form-group flex-1">
             <label for="edit-cert-category">Category <span class="required">*</span></label>
-            <select id="edit-cert-category" name="category" class="form-control">
-              <option value="">Select Category</option>
-              <option value="academic">Academic</option>
-              <option value="workshop">Workshop</option>
-              <option value="seminar">Seminar</option>
-              <option value="research">Research</option>
-              <option value="project">Project</option>
-              <option value="internship">Internship</option>
-              <option value="course">Course</option>
-              <option value="symposium">Symposium</option>
-              <option value="competition">Competition</option>
-              <option value="other">Other</option>
-            </select>
+            <input type="text" id="edit-cert-category" name="category" class="form-control" placeholder="e.g. Workshop, Internship, Hackathon...">
             <span class="error-msg" id="edit-error-category"></span>
           </div>
         </div>

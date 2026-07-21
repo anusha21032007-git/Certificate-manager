@@ -6,6 +6,7 @@ let certificates = [];
 let activeFilter = 'all'; // 'all' or 'favorites'
 let searchKeyword = '';
 let selectedCategory = 'all';
+let activeSort = 'date-desc'; // 'date-desc', 'date-asc', 'title-asc', 'title-desc', 'category-asc', 'org-asc'
 let editSelectedFile = null;
 let editSelectedFileDataUrl = null;
 
@@ -38,8 +39,21 @@ function getUserIdFromToken() {
 // Fetch certificates from backend
 async function fetchCertificates() {
   try {
-    const userId = getUserIdFromToken();
-    if (!userId) return;
+    let userId = null;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) userId = user.id;
+    } catch (e) {}
+
+    if (!userId) {
+      userId = getUserIdFromToken();
+    }
+
+    if (!userId) {
+      certificates = [];
+      renderDashboard();
+      return;
+    }
 
     const { data, error } = await supabase
       .from('certificates')
@@ -52,7 +66,7 @@ async function fetchCertificates() {
       return;
     }
 
-    // Load favorites from local storage to keep schema intact
+    // Load favorites from local storage scoped to authenticated user ID
     const favKey = `favorites_user_${userId}`;
     const favs = JSON.parse(localStorage.getItem(favKey)) || [];
 
@@ -78,6 +92,7 @@ async function fetchCertificates() {
       };
     });
 
+    updateCategoryFilterMenu();
     renderDashboard();
   } catch (error) {
     console.error('Error fetching certificates:', error);
@@ -85,6 +100,33 @@ async function fetchCertificates() {
 }
 
 window.fetchCertificates = fetchCertificates;
+
+// Dynamically populate category filter dropdown based on user's certificate collection
+function updateCategoryFilterMenu() {
+  const filterMenu = document.getElementById('filter-dropdown-menu');
+  if (!filterMenu) return;
+
+  const categories = Array.from(new Set(certificates.map(c => c.category).filter(Boolean))).sort();
+  
+  let html = `<div class="filter-dropdown-item category-item ${selectedCategory === 'all' ? 'active' : ''}" data-category="all">All Categories</div>`;
+  categories.forEach(cat => {
+    html += `<div class="filter-dropdown-item category-item ${selectedCategory.toLowerCase() === cat.toLowerCase() ? 'active' : ''}" data-category="${escapeHTML(cat)}">${escapeHTML(cat)}</div>`;
+  });
+
+  filterMenu.innerHTML = html;
+
+  // Rebind click listeners
+  const filterItems = filterMenu.querySelectorAll('.category-item');
+  filterItems.forEach(item => {
+    item.addEventListener('click', () => {
+      filterItems.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      selectedCategory = item.dataset.category;
+      renderDashboard();
+      filterMenu.style.display = 'none';
+    });
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   // Check URL query parameters for section or filter options
@@ -103,12 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchCertificates();
   setupEventListeners();
 
-  // Check URL query parameters for action trigger modal popup
+  // Check URL query parameters for action trigger modal popup or page redirect
   const action = urlParams.get('action');
   if (action === 'add-certificate') {
-    openModal('add-certificate-modal');
+    triggerAddCertificate();
   } else if (action === 'profile') {
-    openModal('profile-modal');
+    triggerProfile();
   }
 });
 
@@ -123,10 +165,15 @@ function renderDashboard() {
   // Clear previous grid contents
   grid.innerHTML = '';
 
-  // Filter list based on search, active sidebar state, and category
+  // Filter list based on search, active filter, and category
   const filteredCerts = certificates.filter(cert => {
-    const matchesSearch = cert.title.toLowerCase().includes(searchKeyword.toLowerCase()) || 
-                          cert.org.toLowerCase().includes(searchKeyword.toLowerCase());
+    const q = searchKeyword.toLowerCase();
+    const matchesSearch = !q || 
+      cert.title.toLowerCase().includes(q) || 
+      cert.org.toLowerCase().includes(q) ||
+      cert.category.toLowerCase().includes(q) ||
+      (cert.credentialId && cert.credentialId.toLowerCase().includes(q)) ||
+      (cert.description && cert.description.toLowerCase().includes(q));
     
     const matchesCategory = selectedCategory === 'all' || cert.category.toLowerCase() === selectedCategory.toLowerCase();
     
@@ -134,6 +181,24 @@ function renderDashboard() {
       return matchesSearch && matchesCategory && cert.favorite;
     }
     return matchesSearch && matchesCategory;
+  });
+
+  // Sort list based on activeSort selection
+  filteredCerts.sort((a, b) => {
+    if (activeSort === 'date-desc') {
+      return new Date(b.date || 0) - new Date(a.date || 0);
+    } else if (activeSort === 'date-asc') {
+      return new Date(a.date || 0) - new Date(b.date || 0);
+    } else if (activeSort === 'title-asc') {
+      return a.title.localeCompare(b.title);
+    } else if (activeSort === 'title-desc') {
+      return b.title.localeCompare(a.title);
+    } else if (activeSort === 'category-asc') {
+      return a.category.localeCompare(b.category);
+    } else if (activeSort === 'org-asc') {
+      return a.org.localeCompare(b.org);
+    }
+    return 0;
   });
 
   // Update Section Title & Count Tag
@@ -274,6 +339,25 @@ function setupEventListeners() {
     });
   }
 
+function triggerAddCertificate() {
+  if (window.innerWidth <= 768) {
+    window.location.href = 'add-certificate.html';
+  } else {
+    openModal('add-certificate-modal');
+  }
+}
+
+function triggerProfile() {
+  if (window.innerWidth <= 768) {
+    window.location.href = 'profile.html';
+  } else {
+    openModal('profile-modal');
+  }
+}
+
+window.triggerAddCertificate = triggerAddCertificate;
+window.triggerProfile = triggerProfile;
+
   // Modal Popups Triggers binding
   const addSidebarBtn = document.getElementById('add-cert-sidebar-btn');
   const addHeaderBtn = document.getElementById('add-cert-header-btn');
@@ -283,32 +367,32 @@ function setupEventListeners() {
   if (addSidebarBtn) {
     addSidebarBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal('add-certificate-modal');
+      triggerAddCertificate();
     });
   }
   if (addHeaderBtn) {
     addHeaderBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal('add-certificate-modal');
+      triggerAddCertificate();
     });
   }
   if (addNoResultsBtn) {
     addNoResultsBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal('add-certificate-modal');
+      triggerAddCertificate();
     });
   }
   if (profileTriggerBtn) {
     profileTriggerBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal('profile-modal');
+      triggerProfile();
     });
   }
   const profileMenuBtn = document.getElementById('profile-menu-btn');
   if (profileMenuBtn) {
     profileMenuBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal('profile-modal');
+      triggerProfile();
     });
   }
 
@@ -349,23 +433,31 @@ function setupEventListeners() {
     filterBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isVisible = filterMenu.style.display === 'flex';
+      closeAllDropdowns();
       filterMenu.style.display = isVisible ? 'none' : 'flex';
     });
+  }
 
-    // Handle filter item selection
-    const filterItems = filterMenu.querySelectorAll('.filter-dropdown-item');
-    filterItems.forEach(item => {
+  // Sort Dropdown Handlers
+  const sortBtn = document.getElementById('sort-header-btn');
+  const sortMenu = document.getElementById('sort-dropdown-menu');
+
+  if (sortBtn && sortMenu) {
+    sortBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = sortMenu.style.display === 'flex';
+      closeAllDropdowns();
+      sortMenu.style.display = isVisible ? 'none' : 'flex';
+    });
+
+    const sortItems = sortMenu.querySelectorAll('.sort-item');
+    sortItems.forEach(item => {
       item.addEventListener('click', () => {
-        // Remove active class from all items, add to clicked item
-        filterItems.forEach(i => i.classList.remove('active'));
+        sortItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-
-        // Update selectedCategory state & render
-        selectedCategory = item.dataset.category;
+        activeSort = item.dataset.sort;
         renderDashboard();
-
-        // Close menu
-        filterMenu.style.display = 'none';
+        sortMenu.style.display = 'none';
       });
     });
   }
@@ -393,6 +485,10 @@ function closeAllDropdowns() {
   const filterMenu = document.getElementById('filter-dropdown-menu');
   if (filterMenu) {
     filterMenu.style.display = 'none';
+  }
+  const sortMenu = document.getElementById('sort-dropdown-menu');
+  if (sortMenu) {
+    sortMenu.style.display = 'none';
   }
 }
 
@@ -768,7 +864,9 @@ function openShareModal(cert) {
   const urlInput = document.getElementById('share-url-input');
   const copyBtn = document.getElementById('copy-share-url-btn');
 
-  const shareUrl = cert.url && cert.url !== '#' ? cert.url : `${window.location.origin}/verify/${cert.credentialId || cert.id}`;
+  const shareUrl = cert.url && cert.url !== '#' && !cert.url.includes('localhost') 
+    ? cert.url 
+    : `https://cert.uniaura.dpdns.org/index.html?view=${cert.credentialId || cert.id}`;
 
   if (urlInput) {
     urlInput.value = shareUrl;

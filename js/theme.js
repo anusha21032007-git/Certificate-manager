@@ -99,10 +99,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuIcon = document.getElementById('menu-icon');
   const sidebar = document.querySelector('.sidebar');
   if (menuIcon && sidebar) {
-    menuIcon.addEventListener('click', () => {
+    menuIcon.addEventListener('click', (e) => {
+      e.stopPropagation();
       sidebar.classList.toggle('active');
     });
     
+    // Auto-close sidebar after clicking any navigation item inside sidebar
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.sidebar-menu-item')) {
+        sidebar.classList.remove('active');
+      }
+    });
+
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', (e) => {
       if (!sidebar.contains(e.target) && !menuIcon.contains(e.target) && sidebar.classList.contains('active')) {

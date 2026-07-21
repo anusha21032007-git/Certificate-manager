@@ -91,8 +91,8 @@
 
 .certificates-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
 }
 
 /* Empty State Styling */
@@ -128,14 +128,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+  padding: 12px;
   cursor: pointer;
   overflow: visible; /* To allow floating dropdown */
 }
 
 /* Custom Visual Decorative Header to emulate a real certificate */
 .card-preview-emblem {
-  height: 120px;
+  height: 80px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
   display: flex;
@@ -149,18 +150,18 @@
 .card-preview-emblem::before {
   content: '';
   position: absolute;
-  width: 150px;
-  height: 150px;
-  border: 15px solid rgba(255, 255, 255, 0.05);
+  width: 120px;
+  height: 120px;
+  border: 12px solid rgba(255, 255, 255, 0.05);
   border-radius: 50%;
-  top: -40px;
-  right: -40px;
+  top: -30px;
+  right: -30px;
 }
 
 .card-preview-emblem i.certificate-badge-icon {
-  font-size: 40px;
+  font-size: 28px;
   opacity: 0.9;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
 }
 
 .category-tag {
@@ -350,6 +351,9 @@
 
 /* View Certificate Modal */
 .view-cert-card {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   padding: 24px;
 }
@@ -358,6 +362,9 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow-y: auto;
+  padding-right: 4px;
+  flex: 1;
 }
 
 .cert-mockup {
@@ -539,12 +546,18 @@ body.dark .cert-mockup {
 }
 
 .view-cert-actions {
-  margin-top: 24px;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card);
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 10;
+  flex-shrink: 0;
 }
 
 @media (min-width: 600px) {
@@ -734,4 +747,97 @@ body.dark .large-cert-mockup {
 .filter-dropdown-item.active {
   color: var(--primary);
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  /* Match Add button on top right to Hamburger menu on top left */
+  .header-btn.header-btn-primary {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  .header-btn.header-btn-primary:hover {
+    background-color: var(--bg-hover) !important;
+    color: var(--primary) !important;
+  }
+
+  /* Compact Home Screen Certificate Cards (25-35% height reduction) */
+  .certificates-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .certificate-card {
+    padding: 8px 10px;
+    gap: 6px;
+    border-radius: var(--radius-md);
+  }
+
+  .card-preview-emblem {
+    height: 52px;
+    border-radius: var(--radius-sm);
+  }
+
+  .card-preview-emblem i.certificate-badge-icon {
+    font-size: 20px;
+  }
+
+  .category-tag {
+    top: 4px;
+    left: 4px;
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+
+  .favorite-badge {
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .card-details {
+    gap: 3px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .card-org {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .card-meta {
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .view-cert-card {
+    max-height: 92vh;
+    padding: 16px;
+    width: 95vw;
+  }
+
+  .cert-mockup {
+    height: 160px;
+    max-height: 35vh;
+  }
+
+  .view-cert-actions {
+    justify-content: space-around;
+  }
+
+  .view-cert-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+    font-size: 13px;
+    padding: 8px 10px;
+    justify-content: center;
+  }
 }

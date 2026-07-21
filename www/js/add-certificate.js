@@ -157,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Validate Category
-    if (certCategory.value === '') {
-      setError('category', 'Please select a category.');
+    if (certCategory.value.trim() === '') {
+      setError('category', 'Category is required.');
       isValid = false;
     } else {
       setError('category', '');
