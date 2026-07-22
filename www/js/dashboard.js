@@ -212,6 +212,50 @@ function renderDashboard() {
   if (filteredCerts.length === 0) {
     grid.style.display = 'none';
     noResults.style.display = 'flex';
+
+    // Customize the empty state dynamically based on the active filter
+    const placeholderTitle = noResults.querySelector('h4');
+    const placeholderText = noResults.querySelector('p');
+    const placeholderAddBtn = document.getElementById('no-results-add-btn');
+    const placeholderIcon = noResults.querySelector('i');
+
+    if (activeFilter === 'favorites') {
+      const hasAnyFavorites = certificates.some(cert => cert.favorite);
+      if (placeholderAddBtn) {
+        placeholderAddBtn.style.display = 'none';
+      }
+      if (placeholderIcon) {
+        placeholderIcon.className = 'fa-regular fa-star';
+      }
+      if (!hasAnyFavorites) {
+        if (placeholderTitle) {
+          placeholderTitle.textContent = 'No favorites added yet';
+        }
+        if (placeholderText) {
+          placeholderText.textContent = 'Mark your important certificates as favorites to quickly access them here.';
+        }
+      } else {
+        if (placeholderTitle) {
+          placeholderTitle.textContent = 'No matching favorites found';
+        }
+        if (placeholderText) {
+          placeholderText.textContent = 'Try refining your search keyword or clearing the filters.';
+        }
+      }
+    } else {
+      if (placeholderAddBtn) {
+        placeholderAddBtn.style.display = 'inline-flex';
+      }
+      if (placeholderIcon) {
+        placeholderIcon.className = 'fa-solid fa-folder-open';
+      }
+      if (placeholderTitle) {
+        placeholderTitle.textContent = 'No certificates found';
+      }
+      if (placeholderText) {
+        placeholderText.textContent = 'Try refining your search keyword or add a new certificate.';
+      }
+    }
     return;
   } else {
     grid.style.display = 'grid';
