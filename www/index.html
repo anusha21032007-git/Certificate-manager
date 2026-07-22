@@ -56,21 +56,14 @@
       <i class="fa-solid fa-bars"></i>
     </button>
     <!-- Header Actions -->
-    <div class="header-actions" style="width: 100%; justify-content: flex-end;">
+    <div class="header-actions" style="flex: 1; min-width: 0; justify-content: flex-end;">
       <!-- Search Bar -->
       <div class="search-container">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="search-bar" class="search-input" placeholder="Search certificates by title, org, category...">
       </div>
 
-      <div class="filter-dropdown-container">
-        <button class="header-btn" id="filter-header-btn" title="Filter Categories">
-          <i class="fa-solid fa-filter"></i>
-        </button>
-        <div class="filter-dropdown-menu" id="filter-dropdown-menu">
-          <div class="filter-dropdown-item active" data-category="all">All Categories</div>
-        </div>
-      </div>
+
 
       <div class="sort-dropdown-container" style="position: relative;">
         <button class="header-btn" id="sort-header-btn" title="Sort Certificates">
@@ -370,12 +363,10 @@
         </div>
       </div>
       <div class="view-cert-actions">
-        <button class="btn btn-secondary" id="view-action-download"><i class="fa-solid fa-download"></i>
-          Download</button>
-        <button class="btn btn-secondary" id="view-action-share"><i class="fa-solid fa-share-nodes"></i> Share</button>
-        <button class="btn btn-secondary" id="view-action-edit"><i class="fa-regular fa-pen-to-square"></i>
-          Edit</button>
-        <button class="btn btn-danger" id="view-action-delete"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        <button class="btn-icon" id="view-action-download" title="Download Certificate"><i class="fa-solid fa-download"></i></button>
+        <button class="btn-icon" id="view-action-share" title="Share Certificate"><i class="fa-solid fa-share-nodes"></i></button>
+        <button class="btn-icon" id="view-action-edit" title="Edit Certificate"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button class="btn-icon btn-icon-danger" id="view-action-delete" title="Delete Certificate"><i class="fa-regular fa-trash-can"></i></button>
       </div>
     </div>
   </div>

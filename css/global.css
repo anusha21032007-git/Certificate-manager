@@ -235,6 +235,7 @@ a {
   cursor: pointer;
   transition: var(--transition);
   position: relative;
+  flex-shrink: 0;
 }
 
 .header-btn:hover {
@@ -261,6 +262,7 @@ a {
   cursor: pointer;
   border: 2px solid var(--border-color);
   transition: var(--transition);
+  flex-shrink: 0;
 }
 
 .profile-trigger:hover {
@@ -460,6 +462,14 @@ a {
   .header {
     left: 0;
     padding: 0 16px;
+  }
+  .profile-trigger {
+    display: none !important;
+  }
+  .search-container {
+    flex: 1;
+    max-width: 320px;
+    min-width: 0;
   }
   .layout-wrapper {
     margin-left: 0;

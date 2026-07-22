@@ -238,12 +238,8 @@ function renderDashboard() {
     });
 
     card.innerHTML = `
-      <!-- Certificate Visual Header -->
+      <!-- Certificate Visual Emblem -->
       <div class="card-preview-emblem">
-        <span class="category-tag">${cert.category}</span>
-        <button class="favorite-badge" onclick="toggleFavorite(${cert.id}, event)" title="${cert.favorite ? 'Remove from favorites' : 'Add to favorites'}">
-          <i class="${cert.favorite ? 'fa-solid' : 'fa-regular'} fa-star"></i>
-        </button>
         <i class="fa-solid ${iconClass} certificate-badge-icon"></i>
       </div>
 
@@ -251,10 +247,16 @@ function renderDashboard() {
       <div class="card-details">
         <div class="card-title-row">
           <h4 class="card-title">${escapeHTML(cert.title)}</h4>
+          <button class="favorite-badge" onclick="toggleFavorite(${cert.id}, event)" title="${cert.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+            <i class="${cert.favorite ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+          </button>
         </div>
-        <div class="card-org">
-          <i class="fa-regular fa-building"></i>
-          <span>${escapeHTML(cert.org)}</span>
+        <div class="card-subtitle-row">
+          <div class="card-org">
+            <i class="fa-regular fa-building"></i>
+            <span>${escapeHTML(cert.org)}</span>
+          </div>
+          <span class="category-tag-badge">${escapeHTML(cert.category)}</span>
         </div>
         <div class="card-meta">
           <div class="card-meta-date">
